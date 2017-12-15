@@ -1,0 +1,602 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Watchlist",
+    "version": "2.0.0",
+    "contact": {
+      "email": "customer_timeline@comcast.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://watchlist.api.{tenant_subdomain}.customertimeline.com",
+      "description": "Prod",
+      "variables": {
+        "tenant_subdomain": {
+          "default": "cable.comcast",
+          "description": "The domain chosen by the enterprise client."
+        }
+      }
+    }
+  ],
+  "components": {
+    "parameters": {
+      "watchlistId": {
+        "name": "watchlistId",
+        "in": "path",
+        "description": "The id of the requested watchlist",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "schemas": {
+      "Watchlist": {
+        "description": "A watchlist is a group of accounts",
+        "properties": {
+          "id": {
+            "description": "This property will be auto-generated",
+            "type": "string"
+          },
+          "createdBy": {
+            "description": "This property will be auto-generated based on the userId of the authenticated user submitting the request",
+            "type": "string"
+          },
+          "createdOn": {
+            "description": "This property will be auto-generated",
+            "type": "string",
+            "format": "date-time"
+          },
+          "name": {
+            "description": "This is the displayed name of the watchlist",
+            "type": "string"
+          },
+          "description": {
+            "description": "A short description of the watchlist",
+            "type": "string"
+          },
+          "public": {
+            "description": "whether or not this watchlist will be show up in searches.",
+            "type": "boolean"
+          },
+          "userSettings": {
+            "$ref": "#/components/schemas/WatchlistUserSettings"
+          },
+          "entities": {
+            "description": "The list of entities that are being grouped together with this watchlist",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "WatchlistUserSettings": {
+        "description": "Each User can have their own settings for each watchlist",
+        "properties": {
+          "userId": {
+            "description": "This property signifies which user these settings apply to.",
+            "type": "string"
+          },
+          "createdBy": {
+            "description": "This property will be auto-generated based on the userId of the authenticated user that initially created this settings object",
+            "type": "string"
+          },
+          "createdOn": {
+            "description": "This property will be auto-generated",
+            "type": "string",
+            "format": "date-time"
+          },
+          "starred": {
+            "description": "Allows the user to mark this watchlist with higher importance. The UI can then display this watchlist differently.",
+            "type": "boolean",
+            "default": false
+          },
+          "roles": {
+            "description": "Permission roles that enable what a user can do with this watchlist. These roles are not kept within the OAuth token, because they are specific for each watchlist/user combination.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "admin",
+                "viewer"
+              ]
+            },
+            "nullable": true
+          },
+          "active": {
+            "description": "Determines whether the user wants this watchlist to be included in UI navigation and notification processing. This property does not have any effect on access or searchability.",
+            "type": "boolean",
+            "default": true
+          },
+          "notificationRules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WatchlistNotificationRule"
+            }
+          }
+        }
+      },
+      "WatchlistNotificationRule": {
+        "description": "These only represent simple event based notification rules by combining EventId, EntityId (via Watchlist association) and webhooks",
+        "properties": {
+          "id": {
+            "description": "This property will be auto-generated",
+            "type": "string"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "watchlist": {
+            "description": "This represents the list of watchlists which use this rule.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Watchlist"
+            }
+          },
+          "entities": {
+            "description": "This represents the collection of unique entityIds which are associated to this Notification Rule across all watchlists.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "webhook": {
+            "$ref": "#/components/schemas/Webhook"
+          }
+        }
+      },
+      "Webhook": {
+        "description": "This configuration object will describe an HTTP request to be called",
+        "properties": {
+          "id": {
+            "description": "Each webhook should have a unique id. This will enable simpler de-duplication and indexing.",
+            "type": "string"
+          },
+          "method": {
+            "description": "The HTTP Method to use for the request",
+            "type": "string"
+          },
+          "pathParams": {
+            "type": "object"
+          },
+          "requestParams": {
+            "type": "object"
+          },
+          "bodyParams": {
+            "type": "object"
+          },
+          "urlTemplate": {
+            "description": "This template will resolve using the pathParams as its context for resolving templates value references",
+            "type": "string"
+          },
+          "header": {
+            "type": "object"
+          }
+        }
+      },
+      "Error": {
+        "description": "General error object.",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/watchlists": {
+      "summary": "All watchlists for the current user",
+      "description": "This represents the collection of all watchlists available to the authenticated user making the request",
+      "get": {
+        "tags": [
+          "watchlist"
+        ],
+        "summary": "Get all the watchlists",
+        "description": "Get the watchlist collection for the authenticated user making the request",
+        "operationId": "getWatchlistsForUser",
+        "responses": {
+          "200": {
+            "description": "A list of watchlists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Watchlist"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/schemas/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "watchlist"
+        ],
+        "summary": "Create a watchlist/",
+        "description": "Send a sample of a watchlist, and a new one will be created. Any propeties not in the sample will be set by their default values, and any autogenerated properties will overwrite any corresponding properties from the sample.",
+        "requestBody": {
+          "description": "A sample watchlist, which will be used to create the actual watchlist",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Watchlist"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new watchlist was successfully created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Watchlist"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/schemas/Error"
+          },
+          "500": {
+            "$ref": "#/components/schemas/Error"
+          }
+        }
+      }
+    },
+    "/watchlists/{watchlistId}": {
+      "summary": "A specific watchlist",
+      "description": "This route represents an individual watchlist. Authorization for all endpoints behind this route are based on the roles assigned to the authenticated user making the request.",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/watchlistId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "watchlist"
+        ],
+        "summary": "Get the requested watchlist",
+        "description": "Get the request watchlist only if the requested user has the 'viewer' role.",
+        "responses": {
+          "200": {
+            "description": "Requested watchlist was successfully fetched",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Watchlist"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/schemas/Error"
+          },
+          "500": {
+            "$ref": "#/components/schemas/Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "watchlist"
+        ],
+        "summary": "Delete the requested watchlist",
+        "description": "Delete the request watchlist only if the requested user has the 'admin' role.",
+        "responses": {
+          "204": {
+            "description": "Requested watchlist and all its children were successfully deleted"
+          },
+          "401": {
+            "$ref": "#/components/schemas/Error"
+          },
+          "500": {
+            "$ref": "#/components/schemas/Error"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "watchlist"
+        ],
+        "summary": "Update the target watchlist",
+        "description": "Update the target watchlist with the properties in the request body",
+        "requestBody": {
+          "description": "A sample watchlist whose properties will be used to update the current watchlist",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Watchlist"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The watchlist was successfully updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Watchlist"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/schemas/Error"
+          }
+        }
+      }
+    },
+    "/watchlists/{watchlistId}/notifications": {
+      "summary": "All the notification configured for this watchlist",
+      "description": "This route represents the collection of notifications that have been configured for this watchlist",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/watchlistId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "watchlist notification configuration"
+        ],
+        "summary": "Get all the notification configurations",
+        "description": "Get the collection of notification configurations defined for this watchlist",
+        "operationId": "getWatchlistNotificationConfigurations",
+        "responses": {
+          "200": {
+            "description": "A list of new notification configurations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WatchlistNotificationRule"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/schemas/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "watchlist notification configuration"
+        ],
+        "summary": "Add new notification configurations to the watchlist",
+        "description": "Send an array of notification configurations, and the system will setup the platform to respond to them accordingly",
+        "requestBody": {
+          "description": "An array of notification configurations which should be setup",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WatchlistNotificationRule"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "An array of the new WatchlistNotificationRule objects that were successfully setup on the platform.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": null,
+                  "$ref": "#/components/schemas/WatchlistNotificationRule"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/schemas/Error"
+          },
+          "500": {
+            "$ref": "#/components/schemas/Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "watchlist notification configuration"
+        ],
+        "summary": "Remove WatchlistNotificationConfiguration objects from the system",
+        "description": "Remove WatchlistNotificationConfiguration objects from the system only if the user has the 'admin' role",
+        "requestBody": {
+          "description": "An array of watchlistNotificationConfigurationId which should be removed",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "The WatchlistNotificationConfiguration objects were successfully removed from the system"
+          },
+          "401": {
+            "$ref": "#/components/schemas/Error"
+          },
+          "500": {
+            "$ref": "#/components/schemas/Error"
+          }
+        }
+      }
+    },
+    "/watchlists/{watchlistId}/entities": {
+      "summary": "All the entities associated with this watchlist",
+      "description": "This route represents the collection of entities associated with this watchlist.",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/watchlistId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "watchlist entities"
+        ],
+        "summary": "Get all the entities for this watchlist",
+        "description": "Get the collection of entityIds associated with this watchlist",
+        "operationId": "getWatchlistEntities",
+        "responses": {
+          "200": {
+            "description": "A list of entity ids",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/schemas/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "watchlist entities"
+        ],
+        "summary": "Associated entities to the watchlist",
+        "description": "Send an array of entitiyIds, and they will be associated with the watchlist",
+        "requestBody": {
+          "description": "An array of entitiyIds which should be unassociated",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "text/csv": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new entityIds were successfully added.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/schemas/Error"
+          },
+          "500": {
+            "$ref": "#/components/schemas/Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "watchlist entities"
+        ],
+        "summary": "Unassociate the entities from the watchlist",
+        "description": "Unassociate the entities from the watchlist only if the request user has the 'admin' role",
+        "requestBody": {
+          "description": "An array of entityIds which should be unassociated",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "text/csv": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "The entities were successfully unassociated from the watchlist"
+          },
+          "401": {
+            "$ref": "#/components/schemas/Error"
+          },
+          "500": {
+            "$ref": "#/components/schemas/Error"
+          }
+        }
+      }
+    },
+    "/notificationRules": {
+      "summary": "All notification rules",
+      "description": "This represents the collection of ALL unique notification rules spread out across all watchlists",
+      "get": {
+        "tags": [
+          "watchlist notification configuration"
+        ],
+        "responses": {
+          "200": {
+            "description": "All the unique notification rules",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WatchlistNotificationRule"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
